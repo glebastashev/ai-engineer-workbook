@@ -1,0 +1,55 @@
+import assert from 'node:assert/strict';
+const {chromium} = await import(process.env.PLAYWRIGHT_MODULE || '/Users/glebastasev/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright/index.mjs');
+const browser = await chromium.launch({headless:true,executablePath:process.env.CHROMIUM_PATH || '/Users/glebastasev/Library/Caches/ms-playwright/chromium_headless_shell-1223/chrome-headless-shell-mac-arm64/chrome-headless-shell'});
+const url = process.env.WORKBOOK_URL || 'http://localhost:4192/docs/';
+const context=await browser.newContext({viewport:{width:1440,height:1000}});
+const page=await context.newPage();
+const errors=[];page.on('pageerror',e=>errors.push(e.message));
+try {
+  const response=await page.goto(url,{waitUntil:'networkidle'});
+  assert.equal(response.status(),200);
+  await page.getByRole('heading',{name:'Вступительный модуль',exact:true}).waitFor();
+  assert.equal(await page.getByRole('checkbox').count(),12);
+  assert.equal(await page.locator('input[type=password]').count(),0);
+  await page.locator('#reason').pressSequentially('Учусь создавать сайты', {delay:5});
+  assert.equal(await page.locator('#reason').inputValue(),'Учусь создавать сайты');
+  await page.getByRole('checkbox',{name:'Первый вступительный урок просмотрен'}).check();
+  await page.reload({waitUntil:'networkidle'});
+  assert.equal(await page.locator('#reason').inputValue(),'Учусь создавать сайты');
+  assert.equal(await page.getByRole('checkbox',{name:'Первый вступительный урок просмотрен'}).isChecked(),true);
+  assert.equal(await page.getByRole('status').innerText(),'Сохранено в этом браузере');
+  console.log('PASS: immediate refresh retains text and checks without login.');
+  const other=await context.newPage();await other.goto(url,{waitUntil:'networkidle'});
+  assert.equal(await other.locator('#reason').inputValue(),'Учусь создавать сайты');
+  await other.locator('#courseGoal').fill('Создать учебный сайт');
+  await page.locator('#moduleGoal').fill('Собрать рабочую систему');
+  await other.reload({waitUntil:'networkidle'});
+  assert.equal(await other.locator('#courseGoal').inputValue(),'Создать учебный сайт');
+  assert.equal(await other.locator('#moduleGoal').inputValue(),'Собрать рабочую систему');
+  await other.close();
+  console.log('PASS: reopening and editing different fields in two tabs preserve both answers.');
+  await page.locator('summary').click();
+  assert.equal(await page.getByText('Собственный AI-сервис',{exact:true}).isVisible(),true);
+  for(const width of [320,390,1440]){
+    await page.setViewportSize({width,height:900});
+    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true,'overflow '+width);
+  }
+  await page.locator('summary').click();
+  assert.equal(await page.locator('header img').evaluate(el=>el.complete&&el.naturalWidth>0),true);
+  for(const checkbox of await page.getByRole('checkbox').all())await checkbox.check();
+  assert.equal(await page.getByRole('progressbar').getAttribute('aria-valuenow'),'12');
+  await page.evaluate(()=>{localStorage.clear()});await page.reload({waitUntil:'networkidle'});
+  await page.screenshot({path:'outputs/github-desktop.png'});
+  await page.setViewportSize({width:390,height:844});await page.screenshot({path:'outputs/github-mobile.png'});
+  const blocked=await browser.newContext();
+  await blocked.addInitScript(()=>{Storage.prototype.setItem=()=>{throw new DOMException('Disabled','SecurityError')}});
+  const bp=await blocked.newPage();await bp.goto(url,{waitUntil:'networkidle'});
+  await bp.locator('#reason').fill('Не потерять этот ответ');
+  await bp.getByRole('alert').waitFor();
+  assert.equal(await bp.getByRole('status').innerText(),'Не сохранено');
+  await bp.getByRole('button',{name:'Попробовать ещё раз'}).click();
+  assert.equal(await bp.getByRole('status').innerText(),'Не сохранено');
+  await blocked.close();
+  assert.deepEqual(errors,[]);
+  console.log('PASS: mobile layout, logo, all 12 checks, storage-failure message and retry.');
+} finally {await browser.close()}
