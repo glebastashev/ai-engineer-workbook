@@ -7,7 +7,7 @@ const fields = {
   lesson2Watched:'boolean', goalChecked:'boolean', moduleGoalChecked:'boolean', reviewPlanned:'boolean',
   lesson3Watched:'boolean', scheduleChecked:'boolean', taskChecked:'boolean', calendarChecked:'boolean',
 };
-function validate(key, value) {
+export function validate(key, value) {
   if (!Object.hasOwn(fields, key) || typeof value !== fields[key] || (typeof value === 'string' && value.length > 4000)) throw new Error('Неверный формат записи.');
 }
 export function loadAnswers(storage) {

@@ -3,7 +3,22 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "scripts": {"dev":"vite --host 127.0.0.1", "build":"vite build", "preview":"vite preview --host 127.0.0.1", "test":"node --test tests/*.test.mjs"},
-  "dependencies": {"react":"19.2.6", "react-dom":"19.2.6", "lucide-react":"1.31.0"},
-  "devDependencies": {"vite":"8.0.13", "@vitejs/plugin-react":"6.0.2"}
+  "scripts": {
+    "dev": "vite --host 127.0.0.1",
+    "build": "vite build",
+    "preview": "vite preview --host 127.0.0.1",
+    "test": "node --test tests/*.test.mjs",
+    "build:cloud": "node scripts/build-cloud.mjs"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.117.2",
+    "lucide-react": "1.31.0",
+    "react": "19.2.6",
+    "react-dom": "19.2.6"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "^0.5.8",
+    "@vitejs/plugin-react": "6.0.2",
+    "vite": "8.0.13"
+  }
 }

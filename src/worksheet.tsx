@@ -1,5 +1,5 @@
-import { createContext, useContext } from 'react';
-import { Check, CheckCheck, ChevronDown, HardDrive, LoaderCircle, RotateCw } from 'lucide-react';
+import { createContext, useContext, useState } from 'react';
+import { Check, CheckCheck, ChevronDown, CloudCheck, HardDrive, LoaderCircle, RotateCw } from 'lucide-react';
 import { defaultCourse } from './content.mjs';
 import s from './worksheet.module.css';
 import {useWorksheet} from './useWorksheet';
@@ -37,23 +37,33 @@ const WorksheetContext = createContext<{ answers: Answers; update: (key: string,
   }
 
 
-export default function Worksheet() {
-  const { answers, ready, status, error, update, retry } = useWorksheet();
+type WorkbookState = {
+ answers: Answers; ready: boolean; status: string; error: string;
+ update: (key:string,value:string|boolean)=>void; retry:()=>unknown;
+ legacyCount?:number; importLegacy?:()=>Promise<void>; importBusy?:boolean;
+};
+export default function Worksheet() { return <WorksheetView workbook={useWorksheet()}/>; }
+export function WorksheetView({workbook,account,signOut}:{workbook:WorkbookState;account?:string;signOut?:()=>Promise<void>}) {
+  const { answers, ready, status, error, update, retry } = workbook;
+  const [logoutError,setLogoutError]=useState('');
   const complete = checks.flat().filter(key => answers[key] === true).length;
 
   return <WorksheetContext.Provider value={{ answers, update }}><div className={s.page}>
     <header className={s.header}><div className={s.headerInner}>
       <img src="./brand/ai-factory-logo.jpg" alt="AI Factory" width={174} height={40} />
       <span className={s.courseName}>AI-инженер / рабочая тетрадь</span>
+      {account&&<div className={s.account}><span>{account}</span><button type="button" disabled={status==='saving'} onClick={()=>{setLogoutError('');void signOut?.().catch(()=>setLogoutError('Не удалось выйти. Проверь соединение и попробуй ещё раз.'))}}>Выйти</button></div>}
       <div className={s.save} data-state={status} role="status" aria-live="polite">
-        {status === 'loading' ? <LoaderCircle className={s.spin} size={17} /> : status === 'saved' ? <HardDrive size={18} /> : <RotateCw size={17} />}
-        <span>{status === 'saved' ? 'Сохранено в этом браузере' : status === 'loading' ? 'Загружаем…' : 'Не сохранено'}</span>
+        {status === 'loading' || status === 'saving' ? <LoaderCircle className={s.spin} size={17} /> : status === 'saved' ? account ? <CloudCheck size={18}/> : <HardDrive size={18} /> : <RotateCw size={17} />}
+        <span>{status === 'saved' ? account ? 'Сохранено в аккаунте' : 'Сохранено в этом браузере' : status === 'saving' ? 'Сохраняем…' : status === 'loading' ? 'Загружаем…' : 'Не сохранено'}</span>
       </div>
     </div></header>
     <main className={s.main}>
       <div className={s.intro}><div><span className={s.eyebrow}>Три урока перед стартом</span><h1>Вступительный модуль</h1><p>Запиши ответы и отмечай выполненное. Можно прерваться и вернуться позже.</p></div><div className={s.progressCount}><b>{complete}<span>/12</span></b><small>пунктов выполнено</small></div></div>
       <div className={s.progress} role="progressbar" aria-label="Готовность к старту" aria-valuemin={0} aria-valuemax={12} aria-valuenow={complete}><span style={{ width: `${complete / 12 * 100}%` }} /></div>
       <nav className={s.jumpLinks} aria-label="Разделы тетради"><a href="#program">01 Программа</a><a href="#goals">02 Мои цели</a><a href="#plan">03 Первая неделя</a></nav>
+      {logoutError&&<div className={s.error} role="alert">{logoutError}</div>}
+      {ready&&!!workbook.legacyCount&&<div className={s.importBox}><div><b>В этом браузере есть ответы из прежней версии</b><p>Перенести их в аккаунт {account}? Заполненные поля аккаунта сохранятся.</p></div><button type="button" onClick={()=>void workbook.importLegacy?.()} disabled={workbook.importBusy}>{workbook.importBusy?'Переносим…':'Перенести мои ответы'}</button></div>}
       {error && <div className={s.error} role="alert"><p>{error}</p><button type="button" onClick={() => void retry()}><RotateCw size={16} /> Попробовать ещё раз</button></div>}
       {!ready ? <div className={s.loading}>{!error && <><LoaderCircle className={s.spin} size={24} /><p>Открываем твои записи…</p></>}</div> : <>
         <section id="program" className={s.section}>
@@ -112,7 +122,7 @@ export default function Worksheet() {
         </section>
         <div className={s.finish} data-complete={complete === 12}><CheckCheck size={27} /><div><h2>{complete === 12 ? 'Всё готово к началу курса' : 'Твой план останется здесь'}</h2><p>{complete === 12 ? 'Следующий шаг: открой первый урок модуля «Фундамент профессии».' : 'Возвращайся к тетради, чтобы дополнять ответы и отмечать прогресс.'}</p></div></div>
       </>}
-      <footer className={s.footer}>Ответы сохраняются в этом браузере на устройстве.<br />При очистке данных сайта записи удалятся.<br /><br />AI Factory · AI-инженер</footer>
+      <footer className={s.footer}>{account?<>Сохранённые ответы привязаны к твоему аккаунту.<br/>После очистки браузера войди снова, чтобы продолжить.</>:<>Ответы сохраняются в этом браузере на устройстве.<br />При очистке данных сайта записи удалятся.</>}<br /><br />AI Factory · AI-инженер</footer>
     </main>
   </div></WorksheetContext.Provider>;
 }
