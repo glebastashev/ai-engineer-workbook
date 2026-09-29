@@ -122,7 +122,7 @@ export function WorksheetView({workbook,account,signOut}:{workbook:WorkbookState
         </section>
         <div className={s.finish} data-complete={complete === 12}><CheckCheck size={27} /><div><h2>{complete === 12 ? 'Всё готово к началу курса' : 'Твой план останется здесь'}</h2><p>{complete === 12 ? 'Следующий шаг: открой первый урок модуля «Фундамент профессии».' : 'Возвращайся к тетради, чтобы дополнять ответы и отмечать прогресс.'}</p></div></div>
       </>}
-      <footer className={s.footer}>{account?<>Сохранённые ответы привязаны к твоему аккаунту.<br/>После очистки браузера войди снова, чтобы продолжить.</>:<>Ответы сохраняются в этом браузере на устройстве.<br />При очистке данных сайта записи удалятся.</>}<br /><br />AI Factory · AI-инженер</footer>
+      <footer className={s.footer}>{account&&<>Сохранённые ответы привязаны к твоему аккаунту.<br/>После очистки браузера войди снова, чтобы продолжить.<br /><br /></>}AI Factory · AI-инженер</footer>
     </main>
   </div></WorksheetContext.Provider>;
 }
